@@ -234,7 +234,7 @@ class FoodRater:
         new.geometry("800x500")
         frame = Frame(new)
         frame.pack(fill=BOTH, expand=TRUE)
-        label = Label(frame, text='Here are the ratings for each restaurant/cafe in the location!')
+        label = Label(frame, text='Here are the ratings for each restaurant/cafe!')
         label.pack()
         t = Text(frame, height=35, width=50)
         t.pack(fill=BOTH, expand=TRUE)
@@ -253,20 +253,60 @@ class FoodRater:
         data1 = get_ratings_pc(data, postcode)
         c = Counter(data1)
         return c[rating]
+    def search_by_city(self):
+        def get_city_data():
+            cities = [x for x in self.auth_codes]
+            cleaned_cities = []
+            for city in cities:
+                for key, val in city.items():
+                    cleaned_cities.append(key)
+            selection = entry.get()
+            if selection.title() in cleaned_cities:
+                for city in cities:
+                    for key, val in city.items():
+                        if selection == key:
+                            code = val
+            url = self.url_creator(val)
+            items = self.get_num_items(url)
+            page_count = self.get_page_count(items)
+            data1 = []
+            for i in self.url_generator(code, page_count):
+                data1.append(i)
+            main_data = [self.get_restaurants(x) for x in data1]
+            data = self.make_objects(main_data)
+            self.display_restaurant_data(data)
+
+
+        new = Tk()
+        frame = Frame(new)
+        frame.pack(fill=BOTH, expand=TRUE)
+        label = Label(frame, text='Enter the name of a city to see the ratings for restaurants in that city')
+        label.pack()
+        entry = Entry(frame)
+        entry.pack()
+        b = Button(frame, text='SEARCH', command=get_city_data)
+        b.pack()
+        
 
     # b12 = get_total_ratings(cleaned_data, 'B12')
     # print(b12)
     def run_app(self):      
         window = Tk()
         window.title("My App")
-        label = Label(text='Welcome to the food rating app!')
-        label.grid(row=0, column=0)
-        button_1 = Button(text='See ratings by location and postcode', command= self.show_cities, padx=40)
-        button_2 = Button(text='Display restaurants and their ratings', command=self.show_restaurants, padx=40)
-        button_1.grid(row=1, column =0)
-        button_2.grid(row=2, column=0)
-        t = Text(window, height=15, width=50)
-        t.grid(row=4, column=0)
+        window.geometry("250x250")
+        label = Label(window, text='Welcome to the food rating app!')
+        label.pack()
+        frame = Frame(window)
+        frame.pack(fill=BOTH, expand=TRUE)
+        
+        button_1 = Button(frame, text='See ratings by location and postcode', command= self.show_cities, padx=40)
+        button_2 = Button(frame, text='Display restaurants and their ratings', command=self.show_restaurants, padx=40)
+        button_3 = Button(frame, text='Search by City', command=self.search_by_city, padx=40)
+        button_1.pack()
+        button_2.pack()
+        button_3.pack()
+        # t = Text(window, height=15, width=50)
+        # t.grid(row=4, column=0)
         window.mainloop()
 
 
