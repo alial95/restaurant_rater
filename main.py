@@ -52,15 +52,26 @@ class FoodRater:
         url = f'http://ratings.food.gov.uk/enhanced-search/en-GB/^/^/ALPHA/0/{code}/1/30/json'
         return url
 
-    def url_generator(self, code, pages):
-        while pages > 0:
-            data = yield self.get_response(f'http://ratings.food.gov.uk/enhanced-search/en-GB/^/^/ALPHA/0/{code}/{pages}/5000/json')              
-            pages -= 1
+    def url_generator(self, code, page):
+        while page > 0:
+            data = yield self.get_response(f'http://ratings.food.gov.uk/enhanced-search/en-GB/^/^/ALPHA/0/{code}/{page}/5000/json')              
+            page -= 1
 
     def get_restaurants(self,response):
         data = response['FHRSEstablishment']['EstablishmentCollection']['EstablishmentDetail']
         return data
-
+ 
+    def clean_addresses(self, location):
+        if location['AddressLine1'] == None:
+            location['AddressLine1'] = ''
+        if location['AddressLine2'] == None:
+            location['AddressLine2'] = ''
+        if location['AddressLine3'] == None:
+            location['AddressLine3'] = ''
+        if location['AddressLine4'] == None:
+            location['AddressLine4'] = ''
+        address = [location['AddressLine1'], location['AddressLine2'], location['AddressLine3'], location['AddressLine4']]
+        return '-'.join(address)
 
 
     def make_objects(self, data):
@@ -72,6 +83,7 @@ class FoodRater:
                     cleaned_restaurant = {
                         'BusinessId': i['LocalAuthorityBusinessID'],  # build the model for the data, extracting the parts we want to use
                         'BusinessName': i['BusinessName'],
+                        'Address': self.clean_addresses(i),
                         'BusinessType': i['BusinessType'],
                         'Rating': i['RatingValue'],
                         'Score': i['Scores'],
@@ -85,6 +97,7 @@ class FoodRater:
                     'BusinessId': i['LocalAuthorityBusinessID'],  # build the model for the data, extracting the parts we want to use
                     'BusinessName': i['BusinessName'],
                     'BusinessType': i['BusinessType'],
+                    'Address': i['AddressLine1'],
                     'Rating': i['RatingValue'],
                     'Score': i['Scores'],
                     'Geocode': i['Geocode'],
@@ -124,14 +137,17 @@ class FoodRater:
         new.geometry("500x500")
         frame = Frame(new)
         frame.pack(fill=BOTH, expand=TRUE)
-        label = Label(frame, text='Here are the average ratings for each postcode in the city!')
+        label = Label(frame, text='Here are the average ratings for each postcode in the location!')
         label.pack()
         t = Text(frame, height=35, width=50)
         t.pack()
         t.delete(1.0, END)
         for key, value in data.items():
-            t.insert(END, f'Postcode: {key} : Average Rating: {numpy.mean(value)}')
-            t.insert(END, '\n')
+            if key == '0':
+                continue
+            else:
+                t.insert(END, f'Postcode: {key} : Average Rating: {numpy.mean(value)}')
+                t.insert(END, '\n')
 
   
     
@@ -165,14 +181,14 @@ class FoodRater:
 
         mylist = Listbox(frame, yscrollcommand = scrollbar.set )
         for line in cities:
-            for city, code in line.items():
-                mylist.insert(END, f"{city}: {code}")
+            for location, code in line.items():
+                mylist.insert(END, f"{location}: {code}")
 
         mylist.pack(side = LEFT, fill=BOTH, expand=TRUE, padx=5, pady=5)
         scrollbar.config( command = mylist.yview )
         bottomframe = Frame(new)
         bottomframe.pack( side = BOTTOM )
-        button = Button(bottomframe, text='Select a city to get started', command=get_selection)
+        button = Button(bottomframe, text='Select a location to get started', command=get_selection)
         button.pack(side=BOTTOM)
         
     def show_restaurants(self):
@@ -203,14 +219,14 @@ class FoodRater:
 
         mylist = Listbox(frame, yscrollcommand = scrollbar.set )
         for line in cities:
-            for city, code in line.items():
-                mylist.insert(END, f"{city}: {code}")
+            for location, code in line.items():
+                mylist.insert(END, f"{location}: {code}")
 
         mylist.pack(side = LEFT, fill=BOTH, expand=TRUE, padx=5, pady=5)
         scrollbar.config( command = mylist.yview )
         bottomframe = Frame(new)
         bottomframe.pack( side = BOTTOM )
-        button = Button(bottomframe, text='Select a city to get started', command=get_selection)
+        button = Button(bottomframe, text='Select a location to get started', command=get_selection)
         button.pack(side=BOTTOM)
     def display_restaurant_data(self, data):
         new = Tk()
@@ -218,14 +234,14 @@ class FoodRater:
         new.geometry("800x500")
         frame = Frame(new)
         frame.pack(fill=BOTH, expand=TRUE)
-        label = Label(frame, text='Here are the ratings for each restaurant/cafe in the city!')
+        label = Label(frame, text='Here are the ratings for each restaurant/cafe in the location!')
         label.pack()
         t = Text(frame, height=35, width=50)
         t.pack(fill=BOTH, expand=TRUE)
         t.delete(1.0, END)
-        for city in data:
-            t.insert(END, f'{city["BusinessName"]}: {city["Rating"]}')
-            # t.insert(END, city['Postcode'])
+        for location in data:
+            t.insert(END, f'Restaurant Name: {location["BusinessName"]}\nAddress: {location["Address"]}\nRating: {location["Rating"]}')
+            # t.insert(END, location['Postcode'])
             t.insert(END, '\n')
         
 
@@ -243,14 +259,12 @@ class FoodRater:
     def run_app(self):      
         window = Tk()
         window.title("My App")
-        label = Label(text='Welcome to the food rating app. ')
+        label = Label(text='Welcome to the food rating app!')
         label.grid(row=0, column=0)
-        button_1 = Button(text='See ratings by city and postcode', command= self.show_cities, padx=40)
+        button_1 = Button(text='See ratings by location and postcode', command= self.show_cities, padx=40)
         button_2 = Button(text='Display restaurants and their ratings', command=self.show_restaurants, padx=40)
-        button_3 = Button(text="Make new drink", padx=40)
         button_1.grid(row=1, column =0)
         button_2.grid(row=2, column=0)
-        button_3.grid(row=3, column=0)
         t = Text(window, height=15, width=50)
         t.grid(row=4, column=0)
         window.mainloop()
