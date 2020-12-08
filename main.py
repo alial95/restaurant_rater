@@ -20,10 +20,6 @@ class FoodRater:
         data = response.json()
         return data
     
-    def return_response(self, url):
-        response = requests.get(url)
-        assert response.status_code == 200
-        return response
     
     def get_authority_codes(self, url):
         """Return the authority codes for each authority in the uk. Then we can get started!"""

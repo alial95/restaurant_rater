@@ -21,7 +21,8 @@ class TestPageCount(TestCase):
         expected_result = 2
         self.assertEqual(f.get_page_count(dummy_number), expected_result)
 
-
+class TestNumItems(TestCase):
+    def test_get_num_items(self):
 
 
 if __name__ == '__main__':
