@@ -17,7 +17,8 @@ class FoodRater:
     def get_response(self, url):
         response = requests.get(url)
         assert response.status_code == 200
-        return response.json()
+        data = response.json()
+        return data
     
     def return_response(self, url):
         response = requests.get(url)
@@ -72,6 +73,18 @@ class FoodRater:
             location['AddressLine4'] = ''
         address = [location['AddressLine1'], location['AddressLine2'], location['AddressLine3'], location['AddressLine4']]
         return '-'.join(address)
+
+
+    def get_data(self, code):
+        url = self.url_creator(code)
+        items = self.get_num_items(url)
+        page_count = self.get_page_count(items)
+        data1 = []
+        for i in self.url_generator(code, page_count):
+            data1.append(i)
+        main_data = [self.get_restaurants(x) for x in data1]
+        data = self.make_objects(main_data)
+        return data
 
 
     def make_objects(self, data):
@@ -264,16 +277,12 @@ class FoodRater:
             if selection.title() in cleaned_cities:
                 for city in cities:
                     for key, val in city.items():
-                        if selection == key:
+                        if selection.title() == key:
                             code = val
-            url = self.url_creator(val)
-            items = self.get_num_items(url)
-            page_count = self.get_page_count(items)
-            data1 = []
-            for i in self.url_generator(code, page_count):
-                data1.append(i)
-            main_data = [self.get_restaurants(x) for x in data1]
-            data = self.make_objects(main_data)
+            elif selection in cleaned_cities:
+                            print(key)
+            print(code)
+            data = self.get_data(code)
             self.display_restaurant_data(data)
 
 
