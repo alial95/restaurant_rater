@@ -11,6 +11,7 @@ class TestResponse(TestCase):
             url = 'http://facebook.com'
             mock_request.return_value.json = {"Fake: content"}
             mock_request.return_value.status_code = 200
+            print(mock_request.return_value.json)
             response = f.get_response(url)
             self.assertEqual(response, mock_request.return_value)
             self.assertEqual(response.status_code, mock_request.return_value.status_code)

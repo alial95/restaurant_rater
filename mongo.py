@@ -16,7 +16,7 @@ class Mongo:
         cursor = db.birminghamratings
         return cursor
 
-    def show_greaterthan_mean_ratings(self, cursor, rating):
+    def show_greater_than_mean_ratings(self, cursor, rating):
         gt = cursor.find({'MeanRating': {'$gt': rating}})
         for i in gt:
             print(f'Postcode: {i["Postcode"]}\nMean Rating: {i["MeanRating"]}\n ---------------')

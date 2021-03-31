@@ -4,6 +4,7 @@ import sys
 from pymongo import MongoClient
 import math
 import numpy
+from matplotlib import pyplot as plt
 from collections import Counter, defaultdict
 from food_functions import change_none_values_postcode
 from mongo import Mongo
@@ -89,17 +90,33 @@ class FoodRater:
         if len(data) > 1:
             for x in data:
                 for i in x:
-                    cleaned_restaurant = {
-                        'BusinessId': i['LocalAuthorityBusinessID'],  # build the model for the data, extracting the parts we want to use
-                        'BusinessName': i['BusinessName'],
-                        'Address': self.clean_addresses(i),
-                        'BusinessType': i['BusinessType'],
-                        'Rating': i['RatingValue'],
-                        'Score': i['Scores'],
-                        'Geocode': i['Geocode'],
-                        'Postcode': i['PostCode']
-                    }
-                    cleaned_data.append(cleaned_restaurant)
+                    if i['RatingKey'] == 'fhrs_5_en-gb':
+
+                        cleaned_restaurant = {
+                            'BusinessId': i['LocalAuthorityBusinessID'],  # build the model for the data, extracting the parts we want to use
+                            'BusinessName': i['BusinessName'],
+                            'Address': self.clean_addresses(i),
+                            'BusinessType': i['BusinessType'],
+                            'Rating': i['RatingValue'],
+                            'Score': i['Scores'],
+                            'Geocode': i['Geocode'],
+                            'Postcode': i['PostCode']
+                        }
+                        cleaned_data.append(cleaned_restaurant)
+                    else:
+                        cleaned_restaurant = {
+                            'BusinessId': i['LocalAuthorityBusinessID'],  # build the model for the data, extracting the parts we want to use
+                            'BusinessName': i['BusinessName'],
+                            'Address': self.clean_addresses(i),
+                            'BusinessType': i['BusinessType'],
+                            'Rating': i['RatingValue'],
+                            'Score': i['Scores'],
+                            'Geocode': i['Geocode'],
+                            'Postcode': i['PostCode']
+                        }
+                        cleaned_data.append(cleaned_restaurant)
+
+
         else:
             for i in data[0]:
                 cleaned_restaurant = {
@@ -118,7 +135,8 @@ class FoodRater:
         print(len(cleaned_data))
         return cleaned_data
     
-
+    # def clean_ratings(self, rating):
+    #     if type(rating) == 
     def match_ratings_ps(self, data):
        
         dct = defaultdict(list)
@@ -135,7 +153,8 @@ class FoodRater:
                     i['Rating'] = 5
                     data.append(i['Rating'])
             else:
-                dct[i['Postcode'][:4]].append(int(i['Rating']))
+                postcode = i['Postcode'].split(' ')[0]
+                dct[postcode].append(int(i['Rating']))
                 continue
             
         return dct
@@ -148,7 +167,7 @@ class FoodRater:
         frame.pack(fill=BOTH, expand=TRUE)
         label = Label(frame, text='Here are the average ratings for each postcode in the location!')
         label.pack()
-        t = Text(frame, height=35, width=50)
+        t = Text(frame, height=25, width=55)
         t.pack()
         t.delete(1.0, END)
         for key, value in data.items():
@@ -157,7 +176,19 @@ class FoodRater:
             else:
                 t.insert(END, f'Postcode: {key} : Average Rating: {numpy.mean(value)}')
                 t.insert(END, '\n')
+        button_frame = Frame(new)
+        button_frame.pack(fill=BOTH, expand=TRUE)
+        b = Button(button_frame, text='View some data analysis', command= lambda: self.display_line_graph(data))
+        b.pack()
 
+    def display_line_graph(self, data):
+        del data['0']
+        fig, (ax1, ax2) = plt.subplots(2,1)
+        x = [x for x in data]
+        y = [numpy.mean(x) for x in data.values()]
+        ax1.plot(x, y, dashes=[6,2], color='black', marker='o')
+        ax1.set_yticks([4,4.5,5])
+        plt.show()
   
     
     def show_cities(self):
@@ -173,6 +204,7 @@ class FoodRater:
             for i in self.url_generator(code, page_count):
                 data1.append(i)
             main_data = [self.get_restaurants(x) for x in data1]
+            print(main_data[:10])
             data = self.make_objects(main_data)
             final_data = self.match_ratings_ps(data)
             self.display_data(final_data)
@@ -237,7 +269,43 @@ class FoodRater:
         bottomframe.pack( side = BOTTOM )
         button = Button(bottomframe, text='Select a location to get started', command=get_selection)
         button.pack(side=BOTTOM)
-    def display_restaurant_data(self, data):
+    def display_restaurant_data(self, data, selection):
+        def show_piechart(data):
+            fig, ax = plt.subplots()
+            ratings = []
+            labels = []
+            ratings_x = []
+            
+            for x in data:
+                try:
+                    ratings.append(float(x['Rating']))
+                    print(x['Rating'])
+                except ValueError as err:
+                    print('skipping none float value')
+            # postcodes = self.match_ratings_ps(data)
+            counter = Counter(ratings)
+            # labels = list(counter)
+            for x, y in counter.items():
+                labels.append(x)
+                ratings_x.append(y)
+            print(labels, ratings_x)
+
+            # print(postcodes)
+            
+            # for postcode, rating in postcodes.items():
+            #     print(postcode)
+            #     labels.append(postcode)
+            #     try:
+            #         ratings.append(numpy.mean(rating))
+            #     except ValueError as e:
+            #         print('skipping none float value')
+                
+            # print(len(labels), ':', len(ratings))
+            ax.pie(ratings_x, labels=labels)
+            ax.set_title(f'Distribution of health code ratings for {selection}')
+            plt.show()
+
+
         new = Tk()
         new.title("Cities")
         new.geometry("800x500")
@@ -245,14 +313,16 @@ class FoodRater:
         frame.pack(fill=BOTH, expand=TRUE)
         label = Label(frame, text='Here are the ratings for each restaurant/cafe!')
         label.pack()
-        t = Text(frame, height=35, width=50)
+        t = Text(frame, height=25, width=55)
         t.pack(fill=BOTH, expand=TRUE)
         t.delete(1.0, END)
         for location in data:
             t.insert(END, f'Restaurant Name: {location["BusinessName"]}\nAddress: {location["Address"]}\nRating: {location["Rating"]}')
-            # t.insert(END, location['Postcode'])
             t.insert(END, '\n')
-        
+        button_frame = Frame(new)
+        button_frame.pack()
+        b = Button(button_frame, text='view some data visualisations', command= lambda: show_piechart(data))
+        b.pack()
 
     def get_total_ratings(self, data, postcode): 
         def get_rating():
@@ -279,7 +349,7 @@ class FoodRater:
                             print(key)
             print(code)
             data = self.get_data(code)
-            self.display_restaurant_data(data)
+            self.display_restaurant_data(data, selection)
 
 
         new = Tk()
@@ -293,8 +363,7 @@ class FoodRater:
         b.pack()
         
 
-    # b12 = get_total_ratings(cleaned_data, 'B12')
-    # print(b12)
+    
     def run_app(self):      
         window = Tk()
         window.title("My App")
