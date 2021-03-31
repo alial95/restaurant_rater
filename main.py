@@ -301,6 +301,7 @@ class FoodRater:
             #         print('skipping none float value')
                 
             # print(len(labels), ':', len(ratings))
+            print('adding a test print statement')
             ax.pie(ratings_x, labels=labels)
             ax.set_title(f'Distribution of health code ratings for {selection}')
             plt.show()
